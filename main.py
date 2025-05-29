@@ -20,14 +20,6 @@ class BotGameTurn:
         self.action = action
 
 
-def energy_efficient_path(start, end):
-    sx, sy = start
-    ex, ey = end
-    dx = ex - sx
-    dy = ey - sy
-
-
-
 class BotGame:
     def __init__(self, player_num=None):
         self.player_num = player_num
@@ -56,7 +48,7 @@ class BotGame:
         return random.choice(possible) if possible else None
 
     def _can_attack(self, lighthouse, my_energy):
-        return lighthouse.Energy <= 1.5 * my_energy
+        return lighthouse.Energy < my_energy
 
     def _find_attackable_lighthouse(self, cx, cy, my_energy, lighthouses):
         best_target = None
@@ -124,19 +116,6 @@ class BotGame:
             default=None
         )
 
-    def _find_attackable_lighthouse(self, cx, cy, my_energy, lighthouses):
-        candidates = [
-            pos for pos, lh in lighthouses.items()
-            if lh.Owner != self.player_num and lh.Energy < my_energy * 1.5
-        ]
-        return min(candidates, key=lambda pos: abs(pos[0] - cx) + abs(pos[1] - cy), default=None)
-
-    def _move_towards(self, cx, cy, target, turn):
-        tx, ty = target
-        dx = (tx - cx) and ((tx - cx) // abs(tx - cx))
-        dy = (ty - cy) and ((ty - cy) // abs(ty - cy))
-        return self._build_action(game_pb2.MOVE, (cx + dx, cy + dy), 0, turn)
-
     def _move_around(self, target_pos, cx, cy, turn):
         tx, ty = target_pos
         moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
@@ -146,21 +125,6 @@ class BotGame:
             if abs(nx - tx) <= 1 and abs(ny - ty) <= 1:
                 return self._build_action(game_pb2.MOVE, (nx, ny), 0, turn)
         return self._random_move(cx, cy, turn)
-
-    def _random_move(self, cx, cy, turn):
-        moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-        dx, dy = random.choice(moves)
-        return self._build_action(game_pb2.MOVE, (cx + dx, cy + dy), 0, turn)
-
-    def _build_action(self, action_type, dest: Tuple[int, int], energy: int, turn):
-        action = game_pb2.NewAction(
-            Action=action_type,
-            Destination=game_pb2.Position(X=dest[0], Y=dest[1]),
-            Energy=energy,
-        )
-        self.turn_states.append((turn, action))
-        self.countT += 1
-        return action
 
     def new_turn_action(self, turn: game_pb2.NewTurn) -> game_pb2.NewAction:
         cx, cy = turn.Position.X, turn.Position.Y
@@ -201,8 +165,8 @@ class BotGame:
                     return conn_action
 
             # Si no es nuestro, atacar si permitido y posible
-            elif should_attack_more and lh.Energy < turn.Energy * 1.5:
-                energy = min(turn.Energy, lh.Energy + 1)
+            elif should_attack_more and lh.Energy < turn.Energy:
+                energy = turn.Energy
                 return self._build_action(game_pb2.ATTACK, current_pos, energy, turn)
 
         # Si lleva 2+ turnos en mismo lugar, forzar movimiento
