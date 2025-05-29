@@ -26,7 +26,7 @@ class BotGame:
         self.turn_states = []
         self.countT = 0
         self.stuck_counter = 0
-        self.max_lighthouses = 4
+        self.max_lighthouses = 5
         self.last_position = None
 
     def _get_lighthouses_dict(self, turn: game_pb2.NewTurn):
@@ -94,7 +94,7 @@ class BotGame:
             if (
                     dest_pos != (cx, cy) and
                     dest_lh.Owner == self.player_num
-                    and dest_lh.HaveKey
+                    # and dest_lh.HaveKey
                     and [cx, cy] not in dest_lh.Connections):
                 return self._build_action(game_pb2.CONNECT, dest_pos, 1, turn)
         return None
