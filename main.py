@@ -66,17 +66,19 @@ class BotGame:
 
     def _move_towards(self, cx, cy, target_pos, turn):
         
-        # tx, ty = target_pos
-        # dx = max(-1, min(1, tx - cx))
-        # dy = max(-1, min(1, ty - cy))
-        # nx, ny = cx + dx, cy + dy
+        tx, ty = target_pos
+        dx = max(-1, min(1, tx - cx))
+        dy = max(-1, min(1, ty - cy))
+        nx, ny = cx + dx, cy + dy
 
-        # nx = max(0, min(14, nx))
-        # ny = max(0, min(14, ny))
+        nx = max(0, min(14, nx))
+        ny = max(0, min(14, ny))
 
-        dx, dy = pathfinding.next_move((cx, cy), target_pos, turn.view)
+        # dx, dy = pathfinding.next_move((cx, cy), target_pos, turn.view)
 
-        return self._build_action(game_pb2.MOVE, (cx+dx, cy+dy), 0, turn)
+        # return self._build_action(game_pb2.MOVE, (cx+dx, cy+dy), 0, turn)
+
+        return self._build_action(game_pb2.MOVE, (nx, ny), 0, turn)
 
     def _random_move(self, cx, cy, turn):
         moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
