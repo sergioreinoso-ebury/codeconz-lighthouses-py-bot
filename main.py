@@ -11,6 +11,8 @@ from grpc import RpcError
 from internal.handler.coms import game_pb2
 from internal.handler.coms import game_pb2_grpc as game_grpc
 
+import pathfinding
+
 timeout_to_response = 1  # 1 second
 
 
@@ -28,6 +30,7 @@ class BotGame:
         self.stuck_counter = 0
         self.max_lighthouses = 5
         self.last_position = None
+        self.last_action_type = None  # Para evitar repeticiones de CONNECT o ATTACK
 
     def _get_lighthouses_dict(self, turn: game_pb2.NewTurn):
         return {
@@ -62,15 +65,18 @@ class BotGame:
         return best_target
 
     def _move_towards(self, cx, cy, target_pos, turn):
-        tx, ty = target_pos
-        dx = max(-1, min(1, tx - cx))
-        dy = max(-1, min(1, ty - cy))
-        nx, ny = cx + dx, cy + dy
+        
+        # tx, ty = target_pos
+        # dx = max(-1, min(1, tx - cx))
+        # dy = max(-1, min(1, ty - cy))
+        # nx, ny = cx + dx, cy + dy
 
-        nx = max(0, min(14, nx))
-        ny = max(0, min(14, ny))
+        # nx = max(0, min(14, nx))
+        # ny = max(0, min(14, ny))
 
-        return self._build_action(game_pb2.MOVE, (nx, ny), 0, turn)
+        dx, dy = pathfinding.next_move((cx, cy), target_pos, turn.view)
+
+        return self._build_action(game_pb2.MOVE, (cx+dx, cy+dy), 0, turn)
 
     def _random_move(self, cx, cy, turn):
         moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
@@ -82,7 +88,6 @@ class BotGame:
         destination = game_pb2.Position(X=pos_tuple[0], Y=pos_tuple[1])
 
         if action_type == game_pb2.CONNECT:
-            # No pasamos Energy explícitamente
             action = game_pb2.NewAction(
                 Action=action_type,
                 Destination=destination
@@ -96,6 +101,10 @@ class BotGame:
 
         self.turn_states.append(BotGameTurn(turn, action))
         self.countT += 1
+
+        # Guardar tipo de acción anterior
+        self.last_action_type = action_type
+
         return action
 
     def _try_connect(self, lh, lighthouses, turn):
@@ -187,10 +196,15 @@ class BotGame:
             if lh.Owner == self.player_num:
                 conn_action = self._try_connect(lh, lighthouses, turn)
                 if conn_action:
+                    if self.last_action_type == game_pb2.CONNECT:
+                        return self._random_move(cx, cy, turn)
                     return conn_action
+
 
             # Si no es nuestro, atacar si permitido y posible
             elif should_attack_more and lh.Energy < turn.Energy:
+                if self.last_action_type == game_pb2.ATTACK:
+                    return self._random_move(cx, cy, turn)
                 energy = turn.Energy
                 return self._build_action(game_pb2.ATTACK, current_pos, energy, turn)
 
