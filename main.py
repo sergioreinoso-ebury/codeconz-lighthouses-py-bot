@@ -79,24 +79,46 @@ class BotGame:
         return self._build_action(game_pb2.MOVE, (nx, ny), 0, turn)
 
     def _build_action(self, action_type, pos_tuple, energy, turn):
-        action = game_pb2.NewAction(
-            Action=action_type,
-            Destination=game_pb2.Position(X=pos_tuple[0], Y=pos_tuple[1]),
-            Energy=energy
-        )
+        destination = game_pb2.Position(X=pos_tuple[0], Y=pos_tuple[1])
+
+        if action_type == game_pb2.CONNECT:
+            # No pasamos Energy explícitamente
+            action = game_pb2.NewAction(
+                Action=action_type,
+                Destination=destination
+            )
+        else:
+            action = game_pb2.NewAction(
+                Action=action_type,
+                Destination=destination,
+                Energy=energy
+            )
+
         self.turn_states.append(BotGameTurn(turn, action))
         self.countT += 1
         return action
 
     def _try_connect(self, lh, lighthouses, turn):
         cx, cy = lh.Position.X, lh.Position.Y
+
+        # Solo intentamos conectar si controlamos este faro
+        if lh.Owner != self.player_num:
+            return None
+
+        possible_connections = []
         for dest_pos, dest_lh in lighthouses.items():
             if (
-                    dest_pos != (cx, cy) and
-                    dest_lh.Owner == self.player_num
-                    # and dest_lh.HaveKey
-                    and [cx, cy] not in dest_lh.Connections):
-                return self._build_action(game_pb2.CONNECT, dest_pos, 1, turn)
+                    dest_pos != (cx, cy) and  # No conectar consigo mismo
+                    dest_lh.HaveKey and  # Tenemos la clave del destino
+                    [cx, cy] not in dest_lh.Connections and  # Aún no está conectado
+                    dest_lh.Owner == self.player_num  # Controlamos el destino
+            ):
+                possible_connections.append(dest_pos)
+
+        if possible_connections:
+            chosen = random.choice(possible_connections)
+            return self._build_action(game_pb2.CONNECT, chosen, 0, turn)
+
         return None
 
     def _find_adjacent_lighthouse(self, cx, cy, lighthouses):
