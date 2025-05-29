@@ -214,6 +214,9 @@ def main():
     bot.wait_to_join_game()
     bot.start_listening()
 
+def test_pust():
+    return True
+
 
 if __name__ == "__main__":
     main()
