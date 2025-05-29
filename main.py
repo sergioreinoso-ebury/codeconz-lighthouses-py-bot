@@ -91,9 +91,12 @@ class BotGame:
     def _try_connect(self, lh, lighthouses, turn):
         cx, cy = lh.Position.X, lh.Position.Y
         for dest_pos, dest_lh in lighthouses.items():
-            if (dest_pos != (cx, cy) and dest_lh.Owner == self.player_num and dest_lh.HaveKey
+            if (
+                    dest_pos != (cx, cy) and
+                    dest_lh.Owner == self.player_num
+                    and dest_lh.HaveKey
                     and [cx, cy] not in dest_lh.Connections):
-                return self._build_action(game_pb2.CONNECT, dest_pos, 0, turn)
+                return self._build_action(game_pb2.CONNECT, dest_pos, 1, turn)
         return None
 
     def _find_adjacent_lighthouse(self, cx, cy, lighthouses):
